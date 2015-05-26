@@ -1,6 +1,17 @@
 $( document ).ready(function(){
 
   d3.csv("data/CTAtrain.csv", function(data){
+    
+    // var lines = d3.nest()
+    //               .key(function(d) { return d.line; })
+    //               .key(function(d) { return d.branch; })
+    //               .entries(data);
+    // console.log(lines);
+    // marker array
+    var markers = []; 
+
+    //polylines
+    var polylines = [];
 
     // map setup
     var map = L.map('map', {
@@ -13,8 +24,6 @@ $( document ).ready(function(){
       attribution: 'Tiles courtesy of <a href="http://openstreetmap.se/" target="_blank">OpenStreetMap Sweden</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo( map );
 
-    // marker array
-    var markers = []    
 
     var months = ["January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
@@ -107,6 +116,8 @@ $( document ).ready(function(){
 
       function onBrushUp(){
 
+        removeMarkers(markers);
+
         var value = brush.extent()[0];
 
         var stations = data.filter(function(station){
@@ -114,21 +125,53 @@ $( document ).ready(function(){
         });
 
         updateDate(value,dateText);
-        pinMarkers(stations);
+        // if there are stations update the appropriate items
+        if (stations.length > 0) {
+          pinMarkers(stations);
+          createPolyline([]);
+        }
         
       }
 
-      function pinMarkers (locations) {
-        locations.forEach(function (Location) {
-          markers.push(createMarker(Location));
+      function createMarker(location){
+        var newMarker = L.marker( [location.coords[0], location.coords[1]] )
+          .bindPopup( location.stationName + "<br> opened " + location.dateOpened)
+        .addTo( map );
+        return newMarker;
+      }
+
+      function removeMarkers (markers) {
+        markers.forEach(function(marker){
+          removeMarker(marker);
         });
       }
 
-      function createMarker(location){
-        L.marker( [location.coords[0], location.coords[1]] )
-          .bindPopup( location.stationName + "<br> opened " + location.dateOpened)
-        .addTo( map );
+      function removeMarker (marker) {
+        map.removeLayer(marker);
       }
+
+      function pinMarkers (stations) {
+        stations.forEach(function (station) {
+          markers.push(createMarker(station));
+        });
+      }
+
+      // function createPolyline (points){
+        // var pointOne = new L.LatLng(parseFloat(pointA.coords[0]), parseFloat(pointA.coords[1]));
+        // var pointTwo = new L.LatLng(parseFloat(pointB.coords[0]), parseFloat(pointB.coords[1]));
+        // var points = points;
+
+        // var polyline = new L.Polyline(points, {
+        //                             color: 'green',
+        //                             weight: 8,
+        //                             opacity: 1,
+        //                             smoothFactor: 1
+        //                           }).addTo(map);
+
+        // console.log(polyline);
+
+      // }
+
 
       function updateDate(value,node){
 
@@ -138,24 +181,6 @@ $( document ).ready(function(){
         var textLabels = node
                           .text(month +" "+ year);
 
-      }
-
-      function updateStations (stations, node) {
-        node
-           .selectAll("li")
-           .remove();
-
-        if (stations.length > 0) {
-          stationLayout(stations, node);
-        }
-      }
-
-      function stationLayout (stations,node) {
-        stations.forEach(function(station){
-          node
-           .append("li")
-              .text(stationFormat(station));
-        });
       }
 
       function stationFormat (station) {
